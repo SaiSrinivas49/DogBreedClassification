@@ -1,1 +1,2 @@
 *.h5 filter=lfs diff=lfs merge=lfs -text
+dog_breed_classifier_resnet50v2.h5 filter=lfs diff=lfs merge=lfs -text
