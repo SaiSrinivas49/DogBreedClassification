@@ -1,2 +1,4 @@
 dogImages/
 my_env/
+static/uploads/
+__pycache__/

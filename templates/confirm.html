@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirm Upload</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Confirm Your Image</h1>
+        <p>Please confirm that you want to predict the breed for the image below.</p>
+        <img src="{{ url_for('static', path='/uploads/' + filename) }}" alt="Uploaded Dog Image" class="preview-img">
+        <form action="/predict" method="post">
+            <input type="hidden" name="filename" value="{{ filename }}">
+            <input type="hidden" name="model_name" value="{{ model_name }}">
+            <button type="submit">Confirm & Predict</button>
+        </form>
+    </div>
+</body>
+</html>
