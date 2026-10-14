@@ -5,6 +5,8 @@ import re
 import time
 import uuid
 from contextlib import asynccontextmanager
+import gc
+import threading
  
 import numpy as np
 import tensorflow as tf
@@ -34,14 +36,11 @@ with open(os.path.join(BASE_DIR, "class_names.json"), encoding="utf-8") as f:
     CLASS_NAMES = json.load(f)
  
 models = {}
- 
- 
-@asynccontextmanager                                          # M9
+model_lock = threading.Lock()
+
+@asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Loading models...")
-    for name, filename in MODEL_FILES.items():
-        models[name] = tf.keras.models.load_model(os.path.join(BASE_DIR, filename))
-    print("Models loaded successfully!")
+    print("Application started. Models will load on demand.")
     yield
     models.clear()
  
@@ -59,14 +58,36 @@ def cleanup_old_uploads(max_age_seconds: int = 3600):         # M10
  
  
 def predict_breed(model_name: str, image_path: str):
-    model = models[model_name]
-    img = tf.keras.utils.load_img(image_path, target_size=IMG_SIZE)
-    img_array = tf.keras.utils.img_to_array(img) / 255.0      # M1: same as training (rescale=1./255)
-    img_array = np.expand_dims(img_array, axis=0)
-    probs = model.predict(img_array, verbose=0)[0]
-    idx = int(np.argmax(probs))
-    return CLASS_NAMES[idx].replace("_", " ").title(), float(probs[idx])
- 
+    with model_lock:
+        if model_name not in models:
+            # Release the previously loaded model
+            models.clear()
+            gc.collect()
+            tf.keras.backend.clear_session()
+
+            # Load only the selected model
+            model_path = os.path.join(
+                BASE_DIR, MODEL_FILES[model_name]
+            )
+            models[model_name] = tf.keras.models.load_model(
+                model_path, compile=False
+            )
+
+        model = models[model_name]
+
+        img = tf.keras.utils.load_img(
+            image_path, target_size=IMG_SIZE
+        )
+        img_array = tf.keras.utils.img_to_array(img) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)
+
+        probs = model.predict(img_array, verbose=0)[0]
+        idx = int(np.argmax(probs))
+
+        return (
+            CLASS_NAMES[idx].replace("_", " ").title(),
+            float(probs[idx])
+        )
  
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
