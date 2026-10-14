@@ -10,6 +10,7 @@
         <h1>Prediction Result</h1>
         <img src="{{ url_for('static', path='/uploads/' + filename) }}" alt="Uploaded Dog Image" class="preview-img">
         <h2>Predicted Breed: <span class="prediction">{{ prediction }}</span></h2>
+        <p>Confidence: {{ confidence }}%</p>
         <a href="/" class="home-button">Predict Another</a>
     </div>
 </body>
